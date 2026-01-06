@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:task_manager/Data/Models/User_Model.dart';
 import 'package:task_manager/UI/Controller/Auth_Controller.dart';
 import 'package:task_manager/UI/Screens/ForgetPasswordEmailVerification.dart';
@@ -9,6 +10,8 @@ import 'package:task_manager/UI/Widgets/Screen_Background.dart';
 
 import '../../Data/Services/Api_Caller.dart';
 import '../../Data/Utils/URLs.dart';
+import '../../Providers/Auth_Provider.dart';
+import '../../Providers/Network_Provider.dart';
 
 
 class LoginPage extends StatefulWidget {
@@ -168,55 +171,28 @@ class _LoginPageState extends State<LoginPage> {
 
 
   Future <void> _signin() async{
+    final networkProvider = Provider.of<NetworkProvider>(context,listen: false);
+    final authProvider = Provider.of<AuthProvider>(context,listen: false);
+    final result = await networkProvider.login(email: _emailController.text.trim(), password: _passwordController.text);
 
-    setState(() {
-      signinProgress = true;
-    });
-
-    // Reload PAGE ...........................................................
-    // TIME -> 58 MINUTES
-
-    Map<String,dynamic>requestBody = {
-      "email":_emailController.text,
-
-      "password":_passwordController.text,
-    };
-
-    final ApiResponse response = await ApiCaller.postRequest(
-        url: URLs.loginURL,
-        body: requestBody
-    );
-    setState(() {
-      signinProgress = false;
-    });
-    //new user can only register one time.....................................
-    if( response.isSuccess){
-      // API's data set into class of UserModel
-      // convert from json to object
-      UserModel model = UserModel.fromJson( response.ResponseData['data'] );
-      String accessToken = response.ResponseData['token'];
-      // save or set the data into class of AuthController
-      await AuthController.saveUserData(model, accessToken);
+    if(result != null ){
+      await authProvider.saveUserData(result['user'], result['token']);
+      ApiCaller.accessToken = result['token'];
 
       _clearTextField();
-
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in or Login success.....'),
-            backgroundColor: Colors.green,
-            duration: Duration( seconds: 5 ),
-          ),
-
+        SnackBar(content: Text('Login success..!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
+        ),
       );
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (context)=> MainNabbarHolderScreen())
-      );
-
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>MainNabbarHolderScreen()));
     }
     // old user can't register multiple time with same value.................
     else{
 
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response.ResponseData['data']),
+          SnackBar(content: Text(networkProvider.errorMessage ?? 'Something wrong'),
             backgroundColor: Colors.red,
             duration: Duration( seconds: 5 ),
           )

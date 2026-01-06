@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:task_manager/Data/Services/Api_Caller.dart';
 
 import '../../Data/Utils/URLs.dart';
+import '../../Providers/Network_Provider.dart';
 import '../Widgets/Screen_Background.dart';
 import 'Forget_Password_Verify_OTP_Screen.dart';
 
@@ -16,11 +18,11 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
 
   // variable nibo
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _firstnameController = TextEditingController();
-  TextEditingController _lastnameController = TextEditingController();
-  TextEditingController _mobilenumberController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+ final TextEditingController _emailController = TextEditingController();
+ final TextEditingController _firstnameController = TextEditingController();
+ final TextEditingController _lastnameController = TextEditingController();
+ final TextEditingController _mobilenumberController = TextEditingController();
+ final TextEditingController _passwordController = TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -28,31 +30,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool signupProgress = false;
 
   Future <void> _signup() async{
-
-    setState(() {
-      signupProgress = true;
-    });
-
-    // Reload PAGE ...........................................................
-    // TIME -> 58 MINUTES
-
-      Map<String,dynamic>requestBody = {
-        "email":_emailController.text,
-        "firstName":_firstnameController.text,
-        "lastName":_lastnameController.text,
-        "mobile":_mobilenumberController.text,
-        "password":_passwordController.text,
-      };
-
-      final ApiResponse response = await ApiCaller.postRequest(
-        url: URLs.registrationURL,
-        body: requestBody
-      );
-      setState(() {
-        signupProgress = false;
-      });
+    final networkProvider = Provider.of<NetworkProvider>(context,listen: false);
+    final result = networkProvider.register(
+        email: _emailController.text.trim(),
+        firstName: _firstnameController.text.trim(),
+        lastName: _lastnameController.text.trim(),
+        mobile: _mobilenumberController.text.trim(),
+        password: _passwordController.text.trim());
       //new user can only register one time.....................................
-      if( response.isSuccess){
+      if( result != null){
 
         _clearTextField();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,13 +47,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
            duration: Duration( seconds: 5 ),
          )
         );
-
+        Navigator.pop(context);
       }
       // old user can't register multiple time with same value.................
       else{
 
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.ResponseData['data']),
+            SnackBar(content: Text(networkProvider.errorMessage ?? 'Something wrong'),
               backgroundColor: Colors.red,
               duration: Duration( seconds: 5 ),
             )

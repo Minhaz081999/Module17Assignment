@@ -31,12 +31,13 @@ class UserModel{
       );
 // for setting the values from API's data.......................................
   factory UserModel.fromJson(Map<String,dynamic> jsonData){
-    return UserModel(id: jsonData['_id'],
+    return UserModel(
+      id: jsonData['_id'],
       email: jsonData['email'],
       firstName: jsonData['firstName'],
       lastName: jsonData['lastName'],
       mobile: jsonData['mobile'],
-      photo: jsonData['mobile'] ?? '',
+      photo: jsonData['photo'] ?? '',
 
     );
 
@@ -50,6 +51,7 @@ class UserModel{
       "firstName":firstName,
       "lastName":lastName,
       "mobile":mobile,
+      "photo":photo
     };
   }
 // -------------------------- x ----------------------------

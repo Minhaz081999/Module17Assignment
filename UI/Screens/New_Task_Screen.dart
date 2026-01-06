@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:task_manager/Data/Models/Task_Model.dart';
 import 'package:task_manager/Data/Models/Task_Status_Count_Model.dart';
+import 'package:task_manager/Data/Models/User_Model.dart';
 import 'package:task_manager/Data/Services/Api_Caller.dart';
 import 'package:task_manager/Data/Utils/URLs.dart';
+import 'package:task_manager/UI/Controller/Auth_Controller.dart';
 import 'package:task_manager/UI/Screens/Add_New_Task_Screen.dart';
 import 'package:task_manager/UI/Widgets/Snack_Bar.dart';
 
+import '../../Providers/Task_Provider.dart';
 import '../Widgets/TMAppBar.dart';
 import '../Widgets/Task_Card.dart';
 import '../Widgets/Task_Count_By_Status.dart';
@@ -20,67 +24,38 @@ class NewTaskScreen extends StatefulWidget {
 
 class _NewTaskScreenState extends State<NewTaskScreen> {
 
-  bool _getTaskStatusCountProgress = false;
-  bool _getNewTaskProgress = false;
 
-  List<TaskStatusCountModel>_taskStatusCountList = [];
-  List<TaskModel> _newTaskList = [];
 
-  Future<void> getAllTaskCount()async {
-    _getTaskStatusCountProgress = true;
-    setState(() {
 
-    });
+Future<void> loadData()async{
+  final taskProvider = Provider.of<TaskProvider>(context,listen: false);
+  Future.wait([
+  taskProvider.fetchTaskStatusCount(),
+  taskProvider.fetchNewTaskByStatus('New')
+  ]);
 
-    ApiResponse response = await ApiCaller.getRequest(url: URLs.taskCountURL);
+}
 
-    _getTaskStatusCountProgress = false;
-    setState(() {
-
-    });
-    List<TaskStatusCountModel> list = [];
-    if( response.isSuccess ){
-
-      for( Map<String, dynamic> jsonData in response.ResponseData['data']){
-        list.add(TaskStatusCountModel.fromJson(jsonData));
-      }
-      
-    }else{
-      showSnackBarMessage(context, response.errorMessage.toString());
-    }
-    _taskStatusCountList = list;
-  }
-  Future<void> getAllNewTasks()async {
-    _getNewTaskProgress = true;
-    setState(() {
-
-    });
-
-    ApiResponse response = await ApiCaller.getRequest(url: URLs.newTaskURL);
-
-    _getNewTaskProgress = false;
-    setState(() {
-
-    });
-    List<TaskModel> list = [];
-    if( response.isSuccess ){
-
-      for( Map<String, dynamic> jsonData in response.ResponseData['data']){
-        list.add(TaskModel.fromJson(jsonData));
-      }
-
-    }else{
-      showSnackBarMessage(context, response.errorMessage.toString());
-    }
-    _newTaskList = list;
-  }
+ 
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    getAllTaskCount();
-    getAllNewTasks();
+    // loadData();
+    // “Flutter,
+    // finish creating the screen FIRST,
+    // then I’ll change the data.
+    Future.microtask((){
+      loadData();
+    });
+
+  }
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+
   }
 
   @override
@@ -88,68 +63,65 @@ class _NewTaskScreenState extends State<NewTaskScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade200,
       appBar: TMAppBar(),
-      body: Column(
-        children: [
-          //gap
-          SizedBox(height: 15,),
-          // SixedBox,Expanded,Container er vitore ListView hobe .....................
-          // time -> 1:27
-          // Row borabor Listview............................................
-          SizedBox(
-            height: 90,
-            child: Visibility(
-              visible: _getTaskStatusCountProgress == false,
-              replacement: Center(child: CircularProgressIndicator()),
-              child: ListView.separated(
-                  scrollDirection : Axis.horizontal,
-              
-                  itemCount: _taskStatusCountList.length,
+      body: Consumer<TaskProvider>(
+        builder: (context, taskProvider, child) {
+          return Column(
+            children: [
+              //gap
+              SizedBox(height: 15,),
+              // SixedBox,Expanded,Container er vitore ListView hobe .....................
+              // time -> 1:27
+              // Row borabor Listview............................................
+              SizedBox(
+                height: 90,
+                child: ListView.separated(
+                    scrollDirection : Axis.horizontal,
+
+                    itemCount: taskProvider.taskStatusCount.length,
+                    // For spacing between cards
+                    separatorBuilder: (context, index){
+                    return SizedBox(width: 30,);
+                    },
+
+                    itemBuilder: (context,index){
+                      final counts = taskProvider.taskStatusCount;
+                      return TaskCountByStatus(
+                        title: counts[index].status ,
+                        count: counts[index].count ,
+                      );
+                    }
+
+                ),
+              ),
+
+             // Column borabor Listview ............................................
+              Expanded(
+                child: ListView.separated(
+                  itemCount: taskProvider.newTasks.length,
                   // For spacing between cards
                   separatorBuilder: (context, index){
-                  return SizedBox(width: 30,);
+                    return SizedBox(height: 5,);
                   },
-              
                   itemBuilder: (context,index){
-                    return TaskCountByStatus(
-                      title: _taskStatusCountList[index].status,
-                      count: _taskStatusCountList[index].count,
+                    return TaskCard(
+                      taskModel: taskProvider.newTasks[index],
+                      cardColor: Colors.blue,
+                      // force to refresh page
+                      refreshParent: ()async{
+
+                        await loadData();
+
+                      },
                     );
-                  }
-              
-              ),
-            ),
-          ),
-
-         // Column borabor Listview ............................................
-          Expanded(
-            child: Visibility(
-              visible: _getNewTaskProgress == false,
-              replacement: Center(child: CircularProgressIndicator()),
-              child: ListView.separated(
-                itemCount: _newTaskList.length,
-                // For spacing between cards
-                separatorBuilder: (context, index){
-                  return SizedBox(height: 5,);
-                },
-                itemBuilder: (context,index){
-                  return TaskCard(
-                    taskModel: _newTaskList[index],
-                    cardColor: Colors.blue,
-                    // force to refresh page
-                    refreshParent: (){
-                      getAllTaskCount();
-                      getAllNewTasks();
-
-                    },
-                  );
-                },
+                  },
 
 
-              ),
-            ),
-          )
-          
-        ],
+                ),
+              )
+
+            ],
+          );
+        }
       ),
       floatingActionButton: FloatingActionButton(
           onPressed: (){

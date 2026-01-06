@@ -43,12 +43,18 @@ static Future getUserData () async{
     }
 }
 
+static Future<void> updateUserData(UserModel model) async{
+  SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
+  await sharedPreferences.setString(_userModelKey, jsonEncode(model.toJson));
+}
+
 // for checking User Login ase ki na !
 static Future<bool> isUserLoggeIn() async{
     SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
     String ? token = sharedPreferences.getString(_accessTokenKey);
 
      if(token != null){
+      await getUserData();
       return true;
      }else{
        return false;

@@ -10,6 +10,7 @@ import 'package:task_manager/app.dart';
 class ApiCaller{
   //------------ Error Detection ------------
   static final Logger _logger = Logger();
+  static String ? accessToken;
 
   static void _logRequest( String Url, {Map <String, dynamic> ? body } ){
    _logger.i(
@@ -40,7 +41,7 @@ class ApiCaller{
 
     Uri uri = Uri.parse(url);
     Response response = await get(uri, headers: {
-      'token' : AuthController.accessToken ?? ''
+      'token' :accessToken ?? ''
     });
 
     _logResponse(url, response);
@@ -79,7 +80,7 @@ class ApiCaller{
     headers: {
       'Accept' : 'application/json',
       'Content-Type' : 'application/json',
-      'token' : AuthController.accessToken ?? ''
+      'token' : accessToken ?? ''
     },
     body: body != null
         ?
